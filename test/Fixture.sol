@@ -24,6 +24,9 @@ contract Fixture is Test {
         tokenIdData.push(bytes32(uint256(2)));
         tokenIdData.push(bytes32(uint256(3)));
         tokenIdData.push(bytes32(uint256(4)));
+        tokenIdData.push(bytes32(uint256(5)));
+        tokenIdData.push(bytes32(uint256(6)));
+        tokenIdData.push(bytes32(uint256(7)));
 
         babe = address(0xbabe);
     }

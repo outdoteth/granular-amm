@@ -23,7 +23,13 @@ contract Pool {
     struct LpAdd {
         SubpoolToken[] tokens;
         uint256 subpoolId;
-        uint256 ethAmount; // only used on init
+        uint256 ethAmount; // only used on first-lp/init. can be ignored otherwise.
+    }
+
+    struct Swap {
+        SubpoolToken[] tokens;
+        uint256 subpoolId;
+        bool isBuy;
     }
 
     address public token;
@@ -43,28 +49,28 @@ contract Pool {
         return _subpools[id];
     }
 
-    function add(LpAdd[] memory _lpAdds) public payable {
+    function add(LpAdd[] memory lpAdds) public payable {
         uint256 totalRequiredEthInput = 0;
 
-        for (uint256 i = 0; i < _lpAdds.length; i++) {
-            LpAdd memory lpAdd = _lpAdds[i];
+        for (uint256 i = 0; i < lpAdds.length; i++) {
+            LpAdd memory lpAdd = lpAdds[i];
             Subpool storage subpool = _subpools[lpAdd.subpoolId];
 
             // calculate and sum the total required eth input
             uint256 requiredEthInput =
-                subpool.init ? subpool.ethReserves * lpAdd.tokens.length / subpool.nftReserves : lpAdd.ethAmount;
+                subpool.init ? (subpool.ethReserves * lpAdd.tokens.length) / subpool.nftReserves : lpAdd.ethAmount;
             totalRequiredEthInput += requiredEthInput;
-
-            // update the subpool's reserves
-            subpool.ethReserves += requiredEthInput;
-            subpool.nftReserves += lpAdd.tokens.length;
 
             // mint lp tokens to the msg.sender
             uint256 shares =
                 subpool.init
-                ? subpool.lpToken.totalSupply() * lpAdd.tokens.length / subpool.nftReserves
+                ? (subpool.lpToken.totalSupply() * lpAdd.tokens.length) / subpool.nftReserves
                 : lpAdd.ethAmount * lpAdd.tokens.length;
             subpool.lpToken.mint(msg.sender, shares);
+
+            // update the subpool's reserves
+            subpool.ethReserves += requiredEthInput;
+            subpool.nftReserves += lpAdd.tokens.length;
 
             subpool.init = true;
 
@@ -78,12 +84,54 @@ contract Pool {
         }
 
         // validate enough eth was sent in
-        require(msg.value == totalRequiredEthInput, "Not enough eth");
+        require(msg.value == totalRequiredEthInput, "Incorrect eth amount");
+    }
+
+    function swap(Swap[] memory swaps) public payable {
+        uint256 totalRequiredEthInput = 0;
+        uint256 totalEthOutput = 0;
+
+        for (uint256 i = 0; i < swaps.length; i++) {
+            Swap memory _swap = swaps[i];
+            Subpool storage subpool = _subpools[_swap.subpoolId];
+
+            if (_swap.isBuy) {
+                // calculate the cost
+                uint256 requiredEthInput = getBuyInput(_swap.subpoolId, _swap.tokens.length);
+                totalRequiredEthInput += requiredEthInput;
+
+                // update the subpool reserves
+                subpool.nftReserves -= _swap.tokens.length;
+                subpool.ethReserves += requiredEthInput;
+            } else {
+                // calculate the output amount
+                uint256 ethOutput = getSellOutput(_swap.subpoolId, _swap.tokens.length);
+                totalEthOutput += ethOutput;
+
+                // update the subpool reserves
+                subpool.nftReserves += _swap.tokens.length;
+                subpool.ethReserves -= ethOutput;
+            }
+
+            for (uint256 j = 0; j < _swap.tokens.length; j++) {
+                // validate that the token exists in the subpool's merkle root
+                require(validateSubpoolToken(_swap.tokens[j], subpool.merkleRoot), "Invalid tokenId");
+
+                // isBuy ? transfer tokens TO msg.sender : transfer tokens FROM msg.sender
+                _swap.isBuy
+                    ? ERC721(token).transferFrom(address(this), msg.sender, _swap.tokens[j].tokenId)
+                    : ERC721(token).transferFrom(msg.sender, address(this), _swap.tokens[j].tokenId);
+            }
+        }
+
+        // validate enough eth was sent in
+        require(msg.value == totalRequiredEthInput, "Incorrect eth amount");
+
+        // send out any eth from sells
+        payable(msg.sender).transfer(totalEthOutput);
     }
 
     function remove() public {}
-
-    function swap() public {}
 
     function price(uint256 subpoolId) public view returns (uint256) {
         Subpool memory subpool = _subpools[subpoolId];
@@ -91,6 +139,19 @@ contract Pool {
         return subpool.ethReserves / subpool.nftReserves;
     }
 
+    function getBuyInput(uint256 subpoolId, uint256 amount) public view returns (uint256) {
+        Subpool storage subpool = _subpools[subpoolId];
+
+        return (amount * subpool.ethReserves) / (subpool.nftReserves - amount);
+    }
+
+    function getSellOutput(uint256 subpoolId, uint256 amount) public view returns (uint256) {
+        Subpool storage subpool = _subpools[subpoolId];
+
+        return (amount * subpool.ethReserves) / (subpool.nftReserves + amount);
+    }
+
+    // todo: this can be in a seperate contract that an admin can change
     function validateSubpoolToken(SubpoolToken memory _token, bytes32 _merkleRoot) public pure returns (bool) {
         return MerkleProof.verify(_token.proof, _merkleRoot, bytes32(_token.tokenId));
     }

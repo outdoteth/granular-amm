@@ -8,7 +8,6 @@ import "../src/Factory.sol";
 import "../src/Pool.sol";
 import "./Fixture.sol";
 
-
 contract AddTest is Fixture {
     Pool public p;
 
@@ -16,7 +15,7 @@ contract AddTest is Fixture {
         bytes32 root = m.getRoot(tokenIdData);
         bytes32[] memory merkleRoots = new bytes32[](1);
         merkleRoots[0] = root;
-        
+
         p = f.create(address(bayc), merkleRoots);
         bayc.setApprovalForAll(address(p), true);
     }
@@ -24,40 +23,26 @@ contract AddTest is Fixture {
     function testItCannotAddLiquidityIfNotEnoughEthIsSent() public {
         // arrange
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](1);
 
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: 1 ether
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
+
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: 1 ether});
         bayc.mint(address(this), 1);
 
         // act
-        vm.expectRevert("Not enough eth");
+        vm.expectRevert("Incorrect eth amount");
         p.add{value: 0.9 ether}(lpAdds);
     }
 
     function testItTransfersERC721IntoContract() public {
         // arrange
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](1);
 
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: 1 ether
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
+
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: 1 ether});
         bayc.mint(address(this), 1);
 
         // act
@@ -70,18 +55,11 @@ contract AddTest is Fixture {
     function testItCannotUseTokenInSubpoolIfProofIsInvalid() public {
         // arrange
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 1)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](1);
 
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: 1 ether
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 1)});
+
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: 1 ether});
         bayc.mint(address(this), 1);
 
         // act
@@ -92,18 +70,11 @@ contract AddTest is Fixture {
     function testItMarksSubpoolAsInited() public {
         // arrange
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](1);
 
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: 1 ether
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
+
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: 1 ether});
         bayc.mint(address(this), 1);
         bayc.mint(address(this), 2);
 
@@ -120,23 +91,11 @@ contract AddTest is Fixture {
         uint256 expectedLpTokenAmount = ethAmount * 2;
 
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](2);
 
-        subpoolTokens[1] = Pool.SubpoolToken({
-            tokenId: 2,
-            proof: m.getProof(tokenIdData, 1)
-        });
-
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: ethAmount
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
+        subpoolTokens[1] = Pool.SubpoolToken({tokenId: 2, proof: m.getProof(tokenIdData, 1)});
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: ethAmount});
         bayc.mint(address(this), 1);
         bayc.mint(address(this), 2);
 
@@ -144,7 +103,11 @@ contract AddTest is Fixture {
         p.add{value: ethAmount}(lpAdds);
 
         // assert
-        assertEq(p.subpools(0).lpToken.balanceOf(address(this)), expectedLpTokenAmount, "Should have transferred correct amount of lp tokens");
+        assertEq(
+            p.subpools(0).lpToken.balanceOf(address(this)),
+            expectedLpTokenAmount,
+            "Should have transferred correct amount of lp tokens"
+        );
         assertEq(p.subpools(0).lpToken.totalSupply(), expectedLpTokenAmount, "Should have incremented total lp supply");
     }
 
@@ -153,23 +116,13 @@ contract AddTest is Fixture {
         uint256 ethAmount = 1.11 ether;
 
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](2);
 
-        subpoolTokens[1] = Pool.SubpoolToken({
-            tokenId: 2,
-            proof: m.getProof(tokenIdData, 1)
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
 
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: ethAmount
-        });
+        subpoolTokens[1] = Pool.SubpoolToken({tokenId: 2, proof: m.getProof(tokenIdData, 1)});
+
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: ethAmount});
         bayc.mint(address(this), 1);
         bayc.mint(address(this), 2);
 
@@ -186,23 +139,11 @@ contract AddTest is Fixture {
         uint256 ethAmount = 1.11 ether;
 
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
-        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
-       
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 1,
-            proof: m.getProof(tokenIdData, 0)
-        });
+        Pool.SubpoolToken[] memory subpoolTokens = new Pool.SubpoolToken[](2);
 
-        subpoolTokens[1] = Pool.SubpoolToken({
-            tokenId: 2,
-            proof: m.getProof(tokenIdData, 1)
-        });
-
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: ethAmount
-        });
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 1, proof: m.getProof(tokenIdData, 0)});
+        subpoolTokens[1] = Pool.SubpoolToken({tokenId: 2, proof: m.getProof(tokenIdData, 1)});
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: ethAmount});
 
         bayc.mint(address(this), 1);
         bayc.mint(address(this), 2);
@@ -210,34 +151,28 @@ contract AddTest is Fixture {
         p.add{value: ethAmount}(lpAdds);
 
         delete subpoolTokens;
-        subpoolTokens= new Pool.SubpoolToken[](2);
+        ethAmount = 1.11 ether / 2;
+        subpoolTokens = new Pool.SubpoolToken[](1);
+        subpoolTokens[0] = Pool.SubpoolToken({tokenId: 3, proof: m.getProof(tokenIdData, 2)});
+        lpAdds[0] = Pool.LpAdd({tokens: subpoolTokens, subpoolId: 0, ethAmount: ethAmount});
 
-        subpoolTokens[0] = Pool.SubpoolToken({
-            tokenId: 3,
-            proof: m.getProof(tokenIdData, 2)
-        });
-
-        subpoolTokens[1] = Pool.SubpoolToken({
-            tokenId: 4,
-            proof: m.getProof(tokenIdData, 3)
-        });
-
-        lpAdds[0] = Pool.LpAdd({
-            tokens: subpoolTokens,
-            subpoolId: 0,
-            ethAmount: ethAmount
-        });
-
+        // act
         vm.startPrank(babe);
 
         deal(babe, ethAmount);
-        
+
         bayc.mint(babe, 3);
-        bayc.mint(babe, 4);
         bayc.setApprovalForAll(address(p), true);
 
         p.add{value: ethAmount}(lpAdds);
 
         vm.stopPrank();
+
+        // assert
+        assertEq(
+            p.subpools(0).lpToken.balanceOf(babe),
+            p.subpools(0).lpToken.totalSupply() / 3,
+            "Should have given babe 1/3rd of the liquidity shares"
+        );
     }
 }
