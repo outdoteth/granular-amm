@@ -6,9 +6,16 @@ import {Owned} from "solmate/auth/Owned.sol";
 import {Pool} from "./Pool.sol";
 
 contract Factory is Owned {
+    mapping(address => address) tokenToPool;
+
     constructor() Owned(msg.sender) {}
 
-    function create(address token, bytes32[] memory merkleRoots) public returns (Pool pool) {
-        return new Pool(token, merkleRoots);
+    function create(address token, bytes32[] memory merkleRoots) public onlyOwner returns (Pool) {
+        require(tokenToPool[token] == address(0), "Pool already created");
+
+        Pool pool = new Pool(token, merkleRoots);
+        tokenToPool[token] = address(pool);
+
+        return pool;
     }
 }
