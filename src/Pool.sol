@@ -32,6 +32,11 @@ contract Pool {
         bool isBuy;
     }
 
+    struct LpRemove {
+        SubpoolToken[] tokens;
+        uint256 subpoolId;
+    }
+
     address public token;
     mapping(uint256 => Subpool) public _subpools;
 
@@ -131,7 +136,37 @@ contract Pool {
         payable(msg.sender).transfer(totalEthOutput);
     }
 
-    function remove() public {}
+    function remove(LpRemove[] memory lpRemoves) public {
+        uint256 totalEthOutput = 0;
+
+        for (uint256 i = 0; i < lpRemoves.length; i++) {
+            LpRemove memory lpRemove = lpRemoves[i];
+            Subpool storage subpool = _subpools[lpRemove.subpoolId];
+
+            // calculate and sum the total eth output
+            uint256 ethOutput = (subpool.ethReserves * lpRemove.tokens.length) / subpool.nftReserves;
+            totalEthOutput += ethOutput;
+
+            // burn lp tokens from the msg.sender
+            uint256 shares = (subpool.lpToken.totalSupply() * lpRemove.tokens.length) / subpool.nftReserves;
+            subpool.lpToken.burn(msg.sender, shares);
+
+            // update the subpool's reserves
+            subpool.ethReserves -= ethOutput;
+            subpool.nftReserves -= lpRemove.tokens.length;
+
+            for (uint256 j = 0; j < lpRemove.tokens.length; j++) {
+                // validate that the token exists in the subpool's merkle root
+                require(validateSubpoolToken(lpRemove.tokens[j], subpool.merkleRoot), "Invalid tokenId");
+
+                // transfer the token out
+                ERC721(token).transferFrom(address(this), msg.sender, lpRemove.tokens[j].tokenId);
+            }
+        }
+
+        // send eth to msg.sender
+        payable(msg.sender).transfer(totalEthOutput);
+    }
 
     function price(uint256 subpoolId) public view returns (uint256) {
         Subpool memory subpool = _subpools[subpoolId];
