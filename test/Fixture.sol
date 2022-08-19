@@ -13,6 +13,8 @@ contract Fixture is Test {
     Merkle public m;
     bytes32[] public tokenIdData;
 
+    address public babe;
+
     constructor() {
         f = new Factory();
         bayc = new MockERC721("fake bayc", "fbayc");
@@ -23,9 +25,6 @@ contract Fixture is Test {
         tokenIdData.push(bytes32(uint256(3)));
         tokenIdData.push(bytes32(uint256(4)));
 
-        bayc.mint(address(this), 1);
-        bayc.mint(address(this), 2);
-        bayc.mint(address(this), 3);
-        bayc.mint(address(this), 4);
+        babe = address(0xbabe);
     }
 }

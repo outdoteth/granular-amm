@@ -11,7 +11,7 @@ contract Pool {
         bytes32 merkleRoot;
         uint256 nftReserves;
         uint256 ethReserves;
-        address lpToken;
+        ERC20MintBurn lpToken;
         bool init;
     }
 
@@ -33,7 +33,7 @@ contract Pool {
         token = _token;
 
         for (uint256 i = 0; i < _merkleRoots.length; i++) {
-            address lpToken = address(new ERC20MintBurn("lp token", "LPT"));
+            ERC20MintBurn lpToken = new ERC20MintBurn("lp token", "LPT");
             _subpools[i] =
                 Subpool({merkleRoot: _merkleRoots[i], ethReserves: 0, nftReserves: 0, lpToken: lpToken, init: false});
         }
@@ -48,7 +48,7 @@ contract Pool {
 
         for (uint256 i = 0; i < _lpAdds.length; i++) {
             LpAdd memory lpAdd = _lpAdds[i];
-            Subpool memory subpool = _subpools[lpAdd.subpoolId];
+            Subpool storage subpool = _subpools[lpAdd.subpoolId];
 
             // calculate and sum the total required eth input
             uint256 requiredEthInput =
@@ -62,9 +62,9 @@ contract Pool {
             // mint lp tokens to the msg.sender
             uint256 shares =
                 subpool.init
-                ? ERC20MintBurn(subpool.lpToken).totalSupply() * lpAdd.tokens.length / subpool.nftReserves
+                ? subpool.lpToken.totalSupply() * lpAdd.tokens.length / subpool.nftReserves
                 : lpAdd.ethAmount * lpAdd.tokens.length;
-            ERC20MintBurn(subpool.lpToken).mint(msg.sender, shares);
+            subpool.lpToken.mint(msg.sender, shares);
 
             subpool.init = true;
 
@@ -73,7 +73,7 @@ contract Pool {
                 require(validateSubpoolToken(lpAdd.tokens[j], subpool.merkleRoot), "Invalid tokenId");
 
                 // transfer the token in
-                ERC721(token).transferFrom(msg.sender, address(this), lpAdd.tokens[i].tokenId);
+                ERC721(token).transferFrom(msg.sender, address(this), lpAdd.tokens[j].tokenId);
             }
         }
 

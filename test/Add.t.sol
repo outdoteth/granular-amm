@@ -21,7 +21,8 @@ contract AddTest is Fixture {
         bayc.setApprovalForAll(address(p), true);
     }
 
-    function testItInitsLiquidity() public {
+    function testItCannotAddLiquidityIfNotEnoughEthIsSent() public {
+        // arrange
         Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
         Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
        
@@ -35,7 +36,208 @@ contract AddTest is Fixture {
             subpoolId: 0,
             ethAmount: 1 ether
         });
+        bayc.mint(address(this), 1);
 
+        // act
+        vm.expectRevert("Not enough eth");
+        p.add{value: 0.9 ether}(lpAdds);
+    }
+
+    function testItTransfersERC721IntoContract() public {
+        // arrange
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 0)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: 1 ether
+        });
+        bayc.mint(address(this), 1);
+
+        // act
         p.add{value: 1 ether}(lpAdds);
+
+        // assert
+        assertEq(bayc.ownerOf(1), address(p), "Should have sent token to contract");
+    }
+
+    function testItCannotUseTokenInSubpoolIfProofIsInvalid() public {
+        // arrange
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 1)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: 1 ether
+        });
+        bayc.mint(address(this), 1);
+
+        // act
+        vm.expectRevert("Invalid tokenId");
+        p.add{value: 1 ether}(lpAdds);
+    }
+
+    function testItMarksSubpoolAsInited() public {
+        // arrange
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](1);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 0)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: 1 ether
+        });
+        bayc.mint(address(this), 1);
+        bayc.mint(address(this), 2);
+
+        // act
+        p.add{value: 1 ether}(lpAdds);
+
+        // assert
+        assertTrue(p.subpools(0).init, "Should have marked subpool as inited");
+    }
+
+    function testItMintsLpTokensToLper() public {
+        // arrange
+        uint256 ethAmount = 1.11 ether;
+        uint256 expectedLpTokenAmount = ethAmount * 2;
+
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 0)
+        });
+
+        subpoolTokens[1] = Pool.SubpoolToken({
+            tokenId: 2,
+            proof: m.getProof(tokenIdData, 1)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: ethAmount
+        });
+        bayc.mint(address(this), 1);
+        bayc.mint(address(this), 2);
+
+        // act
+        p.add{value: ethAmount}(lpAdds);
+
+        // assert
+        assertEq(p.subpools(0).lpToken.balanceOf(address(this)), expectedLpTokenAmount, "Should have transferred correct amount of lp tokens");
+        assertEq(p.subpools(0).lpToken.totalSupply(), expectedLpTokenAmount, "Should have incremented total lp supply");
+    }
+
+    function testItIncrementsReserves() public {
+        // arrange
+        uint256 ethAmount = 1.11 ether;
+
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 0)
+        });
+
+        subpoolTokens[1] = Pool.SubpoolToken({
+            tokenId: 2,
+            proof: m.getProof(tokenIdData, 1)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: ethAmount
+        });
+        bayc.mint(address(this), 1);
+        bayc.mint(address(this), 2);
+
+        // act
+        p.add{value: ethAmount}(lpAdds);
+
+        // assert
+        assertEq(p.subpools(0).nftReserves, 2, "Should have incremented nft reserves");
+        assertEq(p.subpools(0).ethReserves, ethAmount, "Should have incremented eth reserves");
+    }
+
+    function testItAddsAfterInit() public {
+        // arrange
+        uint256 ethAmount = 1.11 ether;
+
+        Pool.LpAdd[] memory lpAdds = new Pool.LpAdd[](1);
+        Pool.SubpoolToken[] memory subpoolTokens= new Pool.SubpoolToken[](2);
+       
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 1,
+            proof: m.getProof(tokenIdData, 0)
+        });
+
+        subpoolTokens[1] = Pool.SubpoolToken({
+            tokenId: 2,
+            proof: m.getProof(tokenIdData, 1)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: ethAmount
+        });
+
+        bayc.mint(address(this), 1);
+        bayc.mint(address(this), 2);
+
+        p.add{value: ethAmount}(lpAdds);
+
+        delete subpoolTokens;
+        subpoolTokens= new Pool.SubpoolToken[](2);
+
+        subpoolTokens[0] = Pool.SubpoolToken({
+            tokenId: 3,
+            proof: m.getProof(tokenIdData, 2)
+        });
+
+        subpoolTokens[1] = Pool.SubpoolToken({
+            tokenId: 4,
+            proof: m.getProof(tokenIdData, 3)
+        });
+
+        lpAdds[0] = Pool.LpAdd({
+            tokens: subpoolTokens,
+            subpoolId: 0,
+            ethAmount: ethAmount
+        });
+
+        vm.startPrank(babe);
+
+        deal(babe, ethAmount);
+        
+        bayc.mint(babe, 3);
+        bayc.mint(babe, 4);
+        bayc.setApprovalForAll(address(p), true);
+
+        p.add{value: ethAmount}(lpAdds);
+
+        vm.stopPrank();
     }
 }
