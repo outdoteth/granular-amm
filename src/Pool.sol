@@ -20,6 +20,8 @@ contract Pool {
         bytes32[] proof;
     }
 
+    // === FUNCTION INPUTS ===
+
     struct LpAdd {
         SubpoolToken[] tokens;
         uint256 subpoolId;

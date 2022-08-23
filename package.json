@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "ethers": "^5.7.0",
+    "keccak256": "^1.0.6",
+    "merkletreejs": "^0.2.32"
+  }
+}
