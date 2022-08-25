@@ -20,13 +20,13 @@ contract Fixture is Test {
         bayc = new MockERC721("fake bayc", "fbayc");
 
         m = new Merkle();
-        tokenIdData.push(bytes32(uint256(1)));
-        tokenIdData.push(bytes32(uint256(2)));
-        tokenIdData.push(bytes32(uint256(3)));
-        tokenIdData.push(bytes32(uint256(4)));
-        tokenIdData.push(bytes32(uint256(5)));
-        tokenIdData.push(bytes32(uint256(6)));
-        tokenIdData.push(bytes32(uint256(7)));
+        tokenIdData.push(keccak256(abi.encode(1)));
+        tokenIdData.push(keccak256(abi.encode(2)));
+        tokenIdData.push(keccak256(abi.encode(3)));
+        tokenIdData.push(keccak256(abi.encode(4)));
+        tokenIdData.push(keccak256(abi.encode(5)));
+        tokenIdData.push(keccak256(abi.encode(6)));
+        tokenIdData.push(keccak256(abi.encode(7)));
 
         babe = address(0xbabe);
     }

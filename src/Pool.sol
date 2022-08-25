@@ -39,11 +39,13 @@ contract Pool {
         uint256 subpoolId;
     }
 
+    uint256 public subpoolCount;
     address public token;
     mapping(uint256 => Subpool) public _subpools;
 
     constructor(address _token, bytes32[] memory _merkleRoots) {
         token = _token;
+        subpoolCount = _merkleRoots.length;
 
         for (uint256 i = 0; i < _merkleRoots.length; i++) {
             ERC20MintBurn lpToken = new ERC20MintBurn("lp token", "LPT");
@@ -65,12 +67,14 @@ contract Pool {
 
             // calculate and sum the total required eth input
             uint256 requiredEthInput =
-                subpool.init ? (subpool.ethReserves * lpAdd.tokens.length) / subpool.nftReserves : lpAdd.ethAmount;
+                subpool.nftReserves != 0
+                ? (subpool.ethReserves * lpAdd.tokens.length) / subpool.nftReserves
+                : lpAdd.ethAmount;
             totalRequiredEthInput += requiredEthInput;
 
             // mint lp tokens to the msg.sender
             uint256 shares =
-                subpool.init
+                subpool.nftReserves != 0
                 ? (subpool.lpToken.totalSupply() * lpAdd.tokens.length) / subpool.nftReserves
                 : lpAdd.ethAmount * lpAdd.tokens.length;
             subpool.lpToken.mint(msg.sender, shares);
@@ -190,6 +194,6 @@ contract Pool {
 
     // todo: this can be in a seperate contract that an admin can change
     function validateSubpoolToken(SubpoolToken memory _token, bytes32 _merkleRoot) public pure returns (bool) {
-        return MerkleProof.verify(_token.proof, _merkleRoot, bytes32(_token.tokenId));
+        return MerkleProof.verify(_token.proof, _merkleRoot, keccak256(abi.encodePacked(_token.tokenId)));
     }
 }

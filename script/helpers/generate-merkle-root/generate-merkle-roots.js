@@ -2,10 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { MerkleTree } = require("merkletreejs");
 const keccak256 = require("keccak256");
+const { defaultAbiCoder } = require("ethers/lib/utils");
 
 const generateMerkleRoots = (rankingFile) => {
   const rankings = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "rankings", rankingFile), {
+    fs.readFileSync(path.join(__dirname, "../rankings", rankingFile), {
       encoding: "utf8",
     })
   );
@@ -18,7 +19,9 @@ const generateMerkleRoots = (rankingFile) => {
   }, []);
 
   const roots = sortedRankings.map((tokenIds) => {
-    const leaves = tokenIds.map((v) => keccak256(v));
+    const leaves = tokenIds.map((v) =>
+      keccak256(defaultAbiCoder.encode(["uint256"], [v]))
+    );
     const tree = new MerkleTree(leaves, keccak256, { sort: true });
     const root = tree.getHexRoot();
 

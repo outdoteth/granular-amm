@@ -1,3 +1,4 @@
+ERC721A/=lib/ERC721A/contracts/
 ds-test/=lib/solmate/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 murky/=lib/murky/src/

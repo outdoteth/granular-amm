@@ -10,10 +10,10 @@ contract DeployScript is Script {
     function setUp() public {}
 
     function run() public {
-        vm.broadcast();
+        vm.startBroadcast();
 
         Factory factory = new Factory();
-        console.log("factory");
+        console.log("factory:");
         console.log(address(factory));
     }
 }

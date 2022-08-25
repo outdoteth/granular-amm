@@ -6,7 +6,7 @@ import {Owned} from "solmate/auth/Owned.sol";
 import {Pool} from "./Pool.sol";
 
 contract Factory is Owned {
-    mapping(address => address) tokenToPool;
+    mapping(address => address) public tokenToPool;
 
     constructor() Owned(msg.sender) {}
 
