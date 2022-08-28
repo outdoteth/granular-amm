@@ -7,7 +7,6 @@ import "ERC721A/ERC721A.sol";
 
 import "../src/Factory.sol";
 
-// todo: erc721a + tokenuri for bayc
 contract FakeBayc is ERC721A {
     constructor() ERC721A("Fake Bored Ape Yacht Club", "FBAYC") {}
 
