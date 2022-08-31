@@ -8,9 +8,9 @@ import {Pool} from "./Pool.sol";
 contract Factory is Owned {
     mapping(address => address) public tokenToPool;
 
-    constructor() Owned(msg.sender) {}
+    constructor() payable Owned(msg.sender) {}
 
-    function create(address token, bytes32[] memory merkleRoots) public onlyOwner returns (Pool) {
+    function create(address token, bytes32[] calldata merkleRoots) external onlyOwner returns (Pool) {
         require(tokenToPool[token] == address(0), "Pool already created");
 
         Pool pool = new Pool(token, merkleRoots);

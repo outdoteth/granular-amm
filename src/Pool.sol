@@ -43,7 +43,7 @@ contract Pool {
     address public token;
     mapping(uint256 => Subpool) public _subpools;
 
-    constructor(address _token, bytes32[] memory _merkleRoots) {
+    constructor(address _token, bytes32[] memory _merkleRoots) payable {
         token = _token;
         subpoolCount = _merkleRoots.length;
 
@@ -58,7 +58,7 @@ contract Pool {
         return _subpools[id];
     }
 
-    function add(LpAdd[] memory lpAdds) public payable {
+    function add(LpAdd[] memory lpAdds) external payable {
         uint256 totalRequiredEthInput = 0;
 
         for (uint256 i = 0; i < lpAdds.length; i++) {
@@ -98,7 +98,7 @@ contract Pool {
         require(msg.value == totalRequiredEthInput, "Incorrect eth amount");
     }
 
-    function swap(Swap[] memory swaps) public payable {
+    function swap(Swap[] memory swaps) external payable {
         uint256 totalRequiredEthInput = 0;
         uint256 totalEthOutput = 0;
 
@@ -142,7 +142,7 @@ contract Pool {
         payable(msg.sender).transfer(totalEthOutput);
     }
 
-    function remove(LpRemove[] memory lpRemoves) public {
+    function remove(LpRemove[] memory lpRemoves) external {
         uint256 totalEthOutput = 0;
 
         for (uint256 i = 0; i < lpRemoves.length; i++) {
